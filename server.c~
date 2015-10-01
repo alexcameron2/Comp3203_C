@@ -1,14 +1,119 @@
 /*Server written by Alex Cameron 100861937*/
 
+//common stuff
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+//connection stuff
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#define BUFF_SIZE 256
+//system stuff
+#include<dirent.h>
+
+//DEFINITIONS
+#define BUFF_SIZE 1025
+
+
+
+//Helper function that returns a string representing the pwd
+char * showPWD(){
+	char *returnValue;
+	returnValue = (char *)malloc(7*sizeof(char));
+	strcpy(returnValue, "pwd-> ");
+	char pwd[256];
+	if (getcwd(pwd, sizeof(pwd)) != NULL){
+		asprintf(&returnValue, "%s", pwd);
+	}	
+return returnValue;
+}
+
+//Helper function that returns a string of all the files in a directory in a neat list. 
+char * showFiles(){
+printf("Entered showDirectory!\n");
+	int index = 0;
+	char *returnValue;
+	returnValue = (char *)malloc(15*sizeof(char));
+	strcpy(returnValue, "\nFILES LIST:\n ");
+	char *temp;
+	DIR *dir;
+	struct dirent *directory;
+	dir = opendir(".");
+	if (dir){
+		while((directory = readdir(dir)) != NULL){
+			asprintf(&temp, "%s", returnValue);
+			if(index % 5 == 0){
+				asprintf(&returnValue, "%s %s\n", temp, directory->d_name);	
+			}		
+			else{
+				asprintf(&returnValue, "%s %s", temp, directory->d_name);		
+			}
+		}
+
+		closedir(dir);
+	}
+printf("Returning from showDirectory: %s\n", returnValue);
+free(temp);
+return returnValue;
+} 
+
+//Function that identifies what opperation the client wants the server to perform
+char * identifyRequest(const char *req){
+	char * commands[] = {"ls", "pwd", "cd", "mkdir" };
+
+	char *r;
+
+	//Copy the request the client buffered in so it can be manipulated
+printf("handling request..buffer= %s\n\n", req);
+	char request[BUFF_SIZE];
+printf("Attempitng strpy()\n");
+	memset(request, '\0', sizeof(request));
+	strcpy(request, req);
+printf("handling request..buffer= %s ..request = %s\n", req, request);
+	//Split the string into varibles	
+	char *command = strtok(request, " ");
+printf("Got the first argument: %s\n", command);
+	char *path = strtok(NULL, " ");
+printf("Got the second argument: %s\n", path);
+
+printf("Got the first argument: %s\n", command);
+
+	//Compare the first given argument to a list of commands
+	int index = -1;
+	int i=0;
+	while(i < 2){
+printf("trying to compare command: -%s-  -to-> commands[%d]: -%s-\n", command, i, commands[i]);
+		if(strcmp(commands[i], command) == 0) {
+printf("Command found!");
+		index = i;
+		break;
+		}
+		i++;
+	}	
+	
+printf("INDEX =: %d\n", index);
+	switch(index) {
+		case 0:
+			r = showFiles();
+			break;
+
+		case 1:
+			r = showPWD();
+			break;
+
+		case 2:
+		case 3:
+			
+		default:
+			r = "identiyRequest()-> Command Not Found\n";
+	}
+	
+	
+return r;
+}
+
 
 int main(int argc, char *argv[]){
 	//File decripters for the connection and client sockets
@@ -17,7 +122,10 @@ int main(int argc, char *argv[]){
 	socklen_t clientLength;
 
 	char buffer[BUFF_SIZE];
-
+	char *p;
+	p = (char *)malloc(100*sizeof(char));
+	strcpy(p, "\np: ");
+	int temp;
 	//Structs needed for sockets/bindings
 	struct sockaddr_in server_addr, client_addr;
 	
@@ -41,7 +149,7 @@ int main(int argc, char *argv[]){
 
 	//Setup the server_addr
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_addr.s_addr = "10.0.2.15";
+	server_addr.sin_addr.s_addr = INADDR_ANY;
 	//Convert from host to network byte order
 	server_addr.sin_port = htons(portNumber);
 
@@ -84,7 +192,18 @@ int main(int argc, char *argv[]){
 			}	
 			//Set the end of the usable buffer then print it
 			buffer[n] = '\0';
-			printf("Message received from client: %s\n", buffer);
+			printf("Full line received from client: %s\n", buffer);
+			temp = asprintf(&p, "%s", identifyRequest(buffer));
+//			memset (buffer, '\0', sizeof(buffer);
+//			if (p == NULL){
+//				printf("p was null..no ls message back.");
+//			}
+//			else {
+//				strcpy(buffer, p);
+//			}
+			if (p != NULL){
+			strcpy(buffer, p);
+			}
 
 			if ((send(clientFD, buffer, strlen(buffer),0)) < 0){
 				printf("Critical Error! Can't message client!\n");

@@ -17,6 +17,9 @@
 //DEFINITIONS
 #define BUFF_SIZE 1025
 
+#define SPECIAL_PUT "$P3CI4L_PUT"
+#define SPECIAL_GET "$P3CI4L_GET"
+
 
 
 //Helper function that returns a string representing the pwd
@@ -66,6 +69,7 @@ char * makeDirectory(const char *fn, const char *p){
 	
 	char *path;
 	char *final;
+	char *cutter;
 	if(fn == NULL){
 		return "Error! formart for mkdir is: mkdir File_Name Path\n";
 	}
@@ -77,6 +81,8 @@ char * makeDirectory(const char *fn, const char *p){
 	}
 	
 	asprintf(&final, "%s/%s", path, fn);
+	//remove the final character
+	final[strlen(final) - 1] = 0;
 	//Attemp to make the directory
 	if (stat (final, &st) == -1){
 		if ( mkdir(final, 0777) < 0){
@@ -90,7 +96,7 @@ char * makeDirectory(const char *fn, const char *p){
 
 //Function that identifies what opperation the client wants the server to perform
 char * identifyRequest(const char *req){
-	char * commands[] = {"ls", "pwd", "cd", "mkdir" };
+	char * commands[] = {"ls", "pwd", "cd", "mkdir", "put", "get"};
 
 	char *r;
 	//Need this struct to check if a file exists easily
@@ -113,7 +119,7 @@ printf("Got the first argument: %s\n", command);
 	//Compare the first given argument to a list of commands
 	int index = -1;
 	int i=0;
-	while(i < 5){
+	while(i < 6){
 printf("trying to compare command: -%s-  -to-> commands[%d]: -%s-\n", command, i, commands[i]);
 		if(strcmp(commands[i], command) == 0) {
 printf("Command found!");
@@ -125,19 +131,38 @@ printf("Command found!");
 	
 printf("INDEX =: %d\n", index);
 	switch(index) {
-		case 0:
+		case 0: //LS
 			r = showFiles();
 			break;
 
-		case 1:
+		case 1: //CWD
 			r = showPWD();
 			break;
 
-		case 2:
-		case 3:
+		case 2: //CH
+			if ( strcmp(filename, "..") == 0){
+				//do something;	
+			}
+
+			//remove the final character
+			filename[strlen(filename) - 1] = 0;
+
+			if ( chdir(filename) < 0) {
+				r = "Error, no such path";
+			}
+			else{
+				r = showPWD();
+			}
+			break;
+		case 3: //MKDIR
 			r = makeDirectory(filename, path);
 			break;
-			
+		case 4: //PUT
+			r = SPECIAL_PUT
+			break;
+		case 5: //GET
+			r = SPECIAL_GET
+			break;
 		default:
 			r = "identiyRequest()-> Command Not Found\n";
 	}

@@ -17,6 +17,9 @@
 //DEFINITIONS
 #define BUFF_SIZE 1025
 
+#define SPECIAL_PUT "$P3CI4L_PUT"
+#define SPECIAL_GET "$P3CI4L_GET"
+
 
 
 //Helper function that returns a string representing the pwd
@@ -93,7 +96,7 @@ char * makeDirectory(const char *fn, const char *p){
 
 //Function that identifies what opperation the client wants the server to perform
 char * identifyRequest(const char *req){
-	char * commands[] = {"ls", "pwd", "cd", "mkdir" };
+	char * commands[] = {"ls", "pwd", "cd", "mkdir", "put", "get"};
 
 	char *r;
 	//Need this struct to check if a file exists easily
@@ -116,7 +119,7 @@ printf("Got the first argument: %s\n", command);
 	//Compare the first given argument to a list of commands
 	int index = -1;
 	int i=0;
-	while(i < 5){
+	while(i < 6){
 printf("trying to compare command: -%s-  -to-> commands[%d]: -%s-\n", command, i, commands[i]);
 		if(strcmp(commands[i], command) == 0) {
 printf("Command found!");
@@ -128,19 +131,38 @@ printf("Command found!");
 	
 printf("INDEX =: %d\n", index);
 	switch(index) {
-		case 0:
+		case 0: //LS
 			r = showFiles();
 			break;
 
-		case 1:
+		case 1: //CWD
 			r = showPWD();
 			break;
 
-		case 2:
-		case 3:
+		case 2: //CH
+			if ( strcmp(filename, "..") == 0){
+				//do something;	
+			}
+
+			//remove the final character
+			filename[strlen(filename) - 1] = 0;
+
+			if ( chdir(filename) < 0) {
+				r = "Error, no such path";
+			}
+			else{
+				r = showPWD();
+			}
+			break;
+		case 3: //MKDIR
 			r = makeDirectory(filename, path);
 			break;
-			
+		case 4: //PUT
+			r = SPECIAL_PUT
+			break;
+		case 5: //GET
+			r = SPECIAL_GET
+			break;
 		default:
 			r = "identiyRequest()-> Command Not Found\n";
 	}
@@ -176,8 +198,7 @@ int main(int argc, char *argv[]){
 
 	//Set the port number to random, or a provided number
 	if(argc < 2){
-//TODO:make random: //hint - bind to port 0 then figure out how to use 'getsockname();'
-		portNumber = 20002;	
+		portNumber = 0;	
 	}else{
 		portNumber = atoi(argv[1]);
 	}
@@ -239,6 +260,31 @@ int main(int argc, char *argv[]){
 			if (p != NULL){
 			strcpy(buffer, p);
 			}
+printf("buffer is -----=%S=-----\n", buffer);
+
+			//Check the first 'word' in the buffer to see it it if 'put or 'get'
+			char *check = strtok(p, " \n");
+			if ( strcmp(check, put) == 0 ) {
+				//do something
+			}
+			else if (strcmp(check, get) == 0){
+				//Get the next token for the filename
+				check = strtok("NULL", " \n");
+				if (check == NULL){
+					break;
+				}
+				//Open the file
+				FILE *filePointer = fopen(check, "rb");
+				if(fp == NULL){
+					strcpy(buffer, "Error opening file";				
+					break;
+				}
+				//Loop untill the whole file has been read/transfered
+				while(1){
+						
+				}
+			}
+
 
 			if ((send(clientFD, buffer, strlen(buffer),0)) < 0){
 				printf("Critical Error! Can't message client!\n");

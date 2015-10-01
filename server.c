@@ -53,6 +53,7 @@ int main(int argc, char *argv[]){
 
 	//Listen -and inform
 	listen(connectionFD, 5);
+
 	printf("Server is listening on port: %d\n", portNumber);
 
 	//Main loop

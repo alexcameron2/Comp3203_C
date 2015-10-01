@@ -41,7 +41,7 @@ int main(int argc, char *argv[]){
 
 	//Setup the server_addr
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_addr.s_addr = INADDR_ANY;
+	server_addr.sin_addr.s_addr = "10.0.2.15";
 	//Convert from host to network byte order
 	server_addr.sin_port = htons(portNumber);
 
@@ -86,7 +86,6 @@ int main(int argc, char *argv[]){
 			buffer[n] = '\0';
 			printf("Message received from client: %s\n", buffer);
 
-			//Set 
 			if ((send(clientFD, buffer, strlen(buffer),0)) < 0){
 				printf("Critical Error! Can't message client!\n");
 				close(clientFD);

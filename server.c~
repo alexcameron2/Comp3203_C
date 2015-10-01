@@ -8,6 +8,7 @@
 //connection stuff
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 
 //system stuff
@@ -57,6 +58,34 @@ printf("Entered showDirectory!\n");
 printf("Returning from showDirectory: %s\n", returnValue);
 free(temp);
 return returnValue;
+}
+
+char * makeDirectory(const char *fn, const char *p){
+	//struct needed to check if a file exists easily	
+	struct stat st = {0};
+	
+	char *path;
+	char *final;
+	if(fn == NULL){
+		return "Error! formart for mkdir is: mkdir File_Name Path\n";
+	}
+	if (p == NULL){
+		path = showPWD();
+	}
+	else {
+		asprintf(&path, "%s", p);
+	}
+	
+	asprintf(&final, "%s/%s", path, fn);
+	//Attemp to make the directory
+	if (stat (final, &st) == -1){
+		if ( mkdir(final, 0777) < 0){
+			return "Error! could not create directory specified!\n";
+		}
+		else{
+			return "Directory created!\n";
+		}
+	}
 } 
 
 //Function that identifies what opperation the client wants the server to perform
@@ -64,6 +93,8 @@ char * identifyRequest(const char *req){
 	char * commands[] = {"ls", "pwd", "cd", "mkdir" };
 
 	char *r;
+	//Need this struct to check if a file exists easily
+	struct stat st ={0};
 
 	//Copy the request the client buffered in so it can be manipulated
 printf("handling request..buffer= %s\n\n", req);
@@ -73,17 +104,16 @@ printf("Attempitng strpy()\n");
 	strcpy(request, req);
 printf("handling request..buffer= %s ..request = %s\n", req, request);
 	//Split the string into varibles	
-	char *command = strtok(request, " ");
+	char *command = strtok(request, " \n");
 printf("Got the first argument: %s\n", command);
+	char *filename = strtok(NULL, " ");
 	char *path = strtok(NULL, " ");
-printf("Got the second argument: %s\n", path);
-
 printf("Got the first argument: %s\n", command);
 
 	//Compare the first given argument to a list of commands
 	int index = -1;
 	int i=0;
-	while(i < 2){
+	while(i < 5){
 printf("trying to compare command: -%s-  -to-> commands[%d]: -%s-\n", command, i, commands[i]);
 		if(strcmp(commands[i], command) == 0) {
 printf("Command found!");
@@ -105,6 +135,8 @@ printf("INDEX =: %d\n", index);
 
 		case 2:
 		case 3:
+			r = makeDirectory(filename, path);
+			break;
 			
 		default:
 			r = "identiyRequest()-> Command Not Found\n";

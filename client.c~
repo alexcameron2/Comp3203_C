@@ -10,6 +10,7 @@
 #include <netdb.h>
 
 #define MAX_LENGTH 80
+#define BUFF_SIZE 256
 
 int main(int argc, char *argv[]){
 	int connectionFD, portNumber, n;
@@ -46,35 +47,39 @@ int main(int argc, char *argv[]){
 	memset((char *) &server_addr,0, sizeof(server_addr));
 	
 	server_addr.sin_family = AF_INET;
-	
-	bcopy((char *)server->h_addr, (char *)&server_addr.sin_addr.s_addr, server->h_length);
 	server_addr.sin_port = htons(portNumber);
+
+	server_addr.sin_addr = *((struct in_addr *)server->h_addr);
 
 	if( connect(connectionFD, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0 ){
 		printf("Critial error! could not connect to the server! ABORT\n");
 		exit(1);
 	}
-while(1){
 	memset(buffer, 0, sizeof(buffer));
-	printf("Enter message to server: ");
-	fflush(stdout);
+	//Main loop
+	while(1){
+		printf("Enter message to server: ");
+		fflush(stdout);
 
-	n = getline(&buff, &len, stdin);
-	if (n != -1){
-	//	puts(buff);
-	}
+		getline(&buff, &len, stdin);
 	
-	n = write(connectionFD, buff, strlen(buff));
-	if (n < 0){
-		printf("connot write to server!\n");
-		exit(1);
-	}
+		if( (send(connectionFD, buff, strlen(buff), 0)) < 0){
+			printf("Critical error! Can't send to server, might as well ABORT!\n");
+			exit(1);
+		}
+		else {
+			printf("Sending ---->: %s\n", buff);
+			n = recv(connectionFD, buff, BUFF_SIZE - 1, 0);
+			if(n <=0){
+				printf("Server stopper? Critical ERROR?! ABORT!");
+				break;
+			}
 
-	if(*buff == 'e'){
-		break;
-	}
+			buff[n] = '\0';
+			printf("Message from server: %s\n", buff);
+		}
 
-}
+	}
 	free(buff);
 	close(connectionFD);
 	return 0;

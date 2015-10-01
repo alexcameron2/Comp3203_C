@@ -8,13 +8,15 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#define BUFF_SIZE 256
+
 int main(int argc, char *argv[]){
 	//File decripters for the connection and client sockets
 	int clientFD, connectionFD, portNumber, n;
 	//length of the addresses
 	socklen_t clientLength;
 
-	char buffer[256];
+	char buffer[BUFF_SIZE];
 
 	//Structs needed for sockets/bindings
 	struct sockaddr_in server_addr, client_addr;
@@ -51,40 +53,50 @@ int main(int argc, char *argv[]){
 
 	//Listen -and inform
 	listen(connectionFD, 5);
-
-
 	printf("Server is listening on port: %d\n", portNumber);
 
-	clientLength = sizeof(client_addr);
-	clientFD = accept(connectionFD, (struct sockaddr *) &client_addr, &clientLength);
-	if (clientFD < 0){
-		printf("Critial Error! Cannot accept clients, might as well ABORT\n");
-		exit(1);
-	}
+	//Main loop
+	while(1){
+		clientLength = sizeof(client_addr);
+		clientFD = accept(connectionFD, (struct sockaddr *) &client_addr, &clientLength);
+		if (clientFD < 0){
+			printf("Critial Error! Cannot accept clients, might as well ABORT\n");
+			exit(1);
+		}
 	
-	printf("Client has connected!\n");
-	//printf("Client connected from: %d  ,via port: %d", 
-	//	inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-	//fflush(stdout);
+		printf("Client has connected! from: %s\n", inet_ntoa(client_addr.sin_addr));
 
-	//Initialize the buffer
-while(1){
-	memset(buffer, 0, sizeof(buffer));
-	
-	n = read(clientFD, buffer, (sizeof(buffer) - 1));
-	if (n < 0){
-		printf("Cirital Error! Cannot get client requests! ABORT!\n");
-		exit(1);
+		//Initialize the buffer
+//		memset(buffer, 0, sizeof(buffer));
+		
+		//Inner main loop..for while a client is connected
+		while(1){
+			//receive messages from the client
+			n = recv(clientFD, buffer, BUFF_SIZE - 1, 0);
+			if (n < 0){
+				printf("Cirital Error! Cannot get client requests! ABORT!\n");
+				exit(1);
+			}
+			else if (n == 0) {
+				printf("Connection closed. Listening.\n");
+				break;
+			}	
+			//Set the end of the usable buffer then print it
+			buffer[n] = '\0';
+			printf("Message received from client: %s\n", buffer);
+
+			if ((send(clientFD, buffer, strlen(buffer),0)) < 0){
+				printf("Critical Error! Can't message client!\n");
+				close(clientFD);
+				break;
+			}
+			printf("Sending ----> %s\n", buffer);
+		}
+		//Close this client connection
+		close(clientFD);
 	}
-	printf("Message recieve from the client: %s\n", buffer);
-	if (*buffer == "exit"){
-		break;
-	}
-}
-	//Be sure to close the connetions
-	close(clientFD);
+	//Close socket
 	close(connectionFD);
 	return 0;
-
 }
 
